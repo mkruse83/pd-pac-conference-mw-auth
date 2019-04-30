@@ -6,10 +6,8 @@ const https = require("https");
  *    The promise rejects when there is an error (e.g. Token is not valid)
  */
 module.exports = token => {
-  var token = event.authorizationToken;
-
   // use header to set token to prevent token in URL
-  var options = {
+  const options = {
     host: "api.amazon.com",
     port: 443,
     path: "/user/profile",
