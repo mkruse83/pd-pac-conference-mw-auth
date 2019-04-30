@@ -1,5 +1,5 @@
-const https = require("https");
-
+const AWSXRay = require("aws-xray-sdk");
+const https = AWSXRay.captureHTTPs(require("https"));
 /**
  * Call Amazon profile endpoint with given token.
  * @returns Promise that resolves if profile endpoint could be called successfully => token is valid.
