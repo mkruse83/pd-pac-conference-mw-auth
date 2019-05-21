@@ -2,7 +2,7 @@
  * This Lambda function is used as an LWA authorizer. If the given token is valid, then access
  * to the requested resource is allowed. If not, then access is denied.
  * An authorizer response has to look like this (taken from AWS documentation):
-{
+ {
   "principalId": "yyyyyyyy", // The principal user identification associated with the token sent by the client.
   "policyDocument": {
     "Version": "2012-10-17",
@@ -30,29 +30,32 @@ const policy = require("./helpers/policy");
 const restrictedPattern = /arn:aws:execute-api:[^:]+:[^:]+:[^/]+\/([^/]+)\/(GET|POST|DELTE)\/admin\/.*/;
 const STAGE_GROUP = 1;
 
-exports.handler = function(event, context, callback) {
-  const result = restrictedPattern.exec(event.methodArn);
-  if (!result || result.length === 0) {
-    console.log("Unrestricted-Request");
-    callback(null, policy("unrestricted", "allow", event.methodArn));
-    return;
-  }
-  console.log("Restricted-Request for stage", result[STAGE_GROUP]);
-  const token = event.authorizationToken;
-  // call amazon LWA profile endpoint with token
-  profile(token)
-    .then(json => {
-      // if successfull generate a Allow response and set user context
-      const response = policy(json.user_id, "Allow", event.methodArn);
-      response.context = {
-        userId: json.user_id,
-        name: json.name,
-        email: json.email
-      };
-      callback(null, response);
-    })
-    .catch(() => {
-      // if anything goes wrong => deny access
-      callback(null, policy("unauthorized", "Deny", event.methodArn));
-    });
+exports.handler = function (event, context, callback) {
+    console.log("INFO: event", JSON.stringify(event, null, 2), "context", JSON.stringify(context, null, 2));
+    const result = restrictedPattern.exec(event.methodArn);
+    if (!result || result.length === 0) {
+        console.log("Unrestricted-Request");
+        callback(null, policy("unrestricted", "allow", event.methodArn));
+        return;
+    }
+    console.log("Restricted-Request for stage", result[STAGE_GROUP]);
+    const token = event.authorizationToken;
+    // call amazon LWA profile endpoint with token
+    profile(token)
+        .then(json => {
+            console.log("INFO: allowing");
+            // if successfull generate a Allow response and set user context
+            const response = policy(json.user_id, "Allow", event.methodArn);
+            response.context = {
+                userId: json.user_id,
+                name: json.name,
+                email: json.email
+            };
+            callback(null, response);
+        })
+        .catch(() => {
+            console.log("INFO: denying");
+            // if anything goes wrong => deny access
+            callback(null, policy("unauthorized", "Deny", event.methodArn));
+        });
 };
